@@ -76,9 +76,40 @@ namespace Atlassian.Jira.Test.Integration.Setup
 
             HtmlPage page = new HtmlPage(new Uri("http://localhost:2990/jira/"));
 
-            page.Navigate("login.jsp");
+            // login
+            Login(page);
+
+            // Restore TestData
+            page.Navigate("secure/admin/XmlRestore!default.jspa");
+            File.Copy(
+                Path.Combine(currentDir, "TestData.zip"),
+                Path.Combine(currentDir, @"amps-standalone\target\jira\home\import\TestData.zip"),
+                true);
+
+            page.Elements.Find("filename", MatchMethod.Literal).SetText("TestData.zip");
+            page.Elements.Find("restore_submit").Click();
 
             // login
+            Login(page);
+
+            // go to configuration screen and set RPC on
+            page.Navigate("secure/admin/EditApplicationProperties!default.jspa");
+            page.Elements.Find("allowRpcOn", MatchMethod.Literal).Click();
+            page.Elements.Find("edit_property").Click();
+
+            // go to time tracking screen and enable
+            page.Navigate("secure/admin/TimeTrackingAdmin!default.jspa");
+            page.Elements.Find("activate_submit").Click();
+
+            Console.WriteLine("-------------------------------------------------------");
+            Console.WriteLine("JIRA Setup Complete. You can now run the integration tests.");
+            Console.WriteLine("-------------------------------------------------------");
+        }
+
+        private static void Login(HtmlPage page)
+        {
+            page.Navigate("login.jsp");
+
             page.Elements.Find("login-form-username").SetText("admin");
             page.Elements.Find("login-form-password").SetText("admin");
             page.Elements.Find("login").Click();
@@ -87,25 +118,6 @@ namespace Atlassian.Jira.Test.Integration.Setup
             page.Navigate("secure/admin/ViewApplicationProperties.jspa");
             page.Elements.Find("login-form-authenticatePassword").SetText("admin");
             page.Elements.Find("authenticateButton").Click();
-
-            // go to configuration screen and set RPC on
-            page.Navigate("secure/admin/EditApplicationProperties!default.jspa");
-            page.Elements.Find("allowRpcOn", MatchMethod.Literal).Click();
-            page.Elements.Find("edit_property").Click();
-
-            // Restore TestData
-            page.Navigate("secure/admin/XmlRestore!default.jspa");
-            File.Copy(
-                Path.Combine(currentDir, "TestData.zip"),
-                Path.Combine(currentDir, @"amps-standalone\target\jira\home\import\TestData.zip"), 
-                true);
-
-            page.Elements.Find("filename", MatchMethod.Literal).SetText("TestData.zip");
-            page.Elements.Find("restore_submit").Click();
-
-            Console.WriteLine("-------------------------------------------------------");
-            Console.WriteLine("JIRA Setup Complete. You can now run the integration tests.");
-            Console.WriteLine("-------------------------------------------------------");
         }
 
 

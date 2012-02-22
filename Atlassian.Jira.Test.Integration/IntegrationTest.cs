@@ -9,22 +9,14 @@ namespace Atlassian.Jira.Test.Integration
 {
     public class IntegrationTest
     {
-        private static IEnumerable<IssueType> _issueTypes = null;
-
         private readonly Jira _jira;
         private readonly Random _random;
-
 
         public IntegrationTest()
         {
             _jira = new Jira("http://localhost:2990/jira", "admin", "admin");
             _jira.Debug = true;
             _random = new Random();
-
-            if (_issueTypes == null)
-            {
-                _issueTypes = _jira.GetIssueTypes("TST");
-            }
         }
 
         [Fact]
@@ -261,7 +253,7 @@ namespace Atlassian.Jira.Test.Integration
         }
 
         [Fact]
-        public void RetrieveIssueTypesForProject()
+        public void IssueTypes()
         {
             var issueTypes = _jira.GetIssueTypes("TST");
 
@@ -270,7 +262,7 @@ namespace Atlassian.Jira.Test.Integration
         }
 
         [Fact]
-        public void RetrievesIssuePriorities()
+        public void GetIssuePriorities()
         {
             var priorities = _jira.GetIssuePriorities();
 
@@ -278,7 +270,7 @@ namespace Atlassian.Jira.Test.Integration
         }
 
         [Fact]
-        public void RetrievesIssueResolutions()
+        public void GetIssueResolutions()
         {
             var resolutions = _jira.GetIssueResolutions();
 
@@ -499,6 +491,30 @@ namespace Atlassian.Jira.Test.Integration
             issue.SaveChanges();
 
             Assert.Equal("My updated value", issue["Custom Text Field"]);
+        }
+
+        [Fact]
+        public void AddAndGetWorklogs()
+        {
+            var summaryValue = "Test issue with work logs" + _random.Next(int.MaxValue);
+
+            var issue = new Issue(_jira, "TST")
+            {
+                Type = "1",
+                Summary = summaryValue
+            };
+            issue.SaveChanges();
+
+            issue.AddWorklog("1d");
+            issue.AddWorklog("1h", WorklogStrategy.RetainRemainingEstimate);
+            issue.AddWorklog("1m", WorklogStrategy.NewRemainingEstimate, "2d");
+            Assert.Equal(3, issue.GetWorklogs().Count);
+        }
+
+        [Fact]
+        public void GetProjects()
+        {
+            Assert.Equal(1, _jira.GetProjects().Count());
         }
     }
 }
