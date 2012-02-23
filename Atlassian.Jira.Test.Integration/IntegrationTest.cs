@@ -181,18 +181,20 @@ namespace Atlassian.Jira.Test.Integration
             issue.SaveChanges();
             Assert.Equal(0, issue.GetAttachments().Count);
 
-            // upload an attachment
-            File.WriteAllText("testfile.txt", "Test File Content");
-            issue.AddAttachment("testfile.txt");
+            // upload multiple attachments
+            File.WriteAllText("testfile1.txt", "Test File Content 1");
+            File.WriteAllText("testfile2.txt", "Test File Content 2");
+            issue.AddAttachment("testfile1.txt", "testfile2.txt");
 
             var attachments = issue.GetAttachments();
-            Assert.Equal(1, attachments.Count);
-            Assert.Equal("testfile.txt", attachments[0].FileName);
+            Assert.Equal(2, attachments.Count);
+            Assert.True(attachments.Any(a => a.FileName.Equals("testfile1.txt")), "'testfile1.txt' was not downloaded from server");
+            Assert.True(attachments.Any(a => a.FileName.Equals("testfile2.txt")), "'testfile2.txt' was not downloaded from server");
 
             // download an attachment
             var tempFile = Path.GetTempFileName();
-            attachments[0].Download(tempFile);
-            Assert.Equal("Test File Content", File.ReadAllText(tempFile));
+            attachments.First(a => a.FileName.Equals("testfile1.txt")).Download(tempFile);
+            Assert.Equal("Test File Content 1", File.ReadAllText(tempFile));
         }
 
         [Fact]
@@ -515,6 +517,24 @@ namespace Atlassian.Jira.Test.Integration
         public void GetProjects()
         {
             Assert.Equal(1, _jira.GetProjects().Count());
+        }
+
+        [Fact]
+        public void AddIssueAsSubtask() 
+        {
+            var summaryValue = "Test issue as subtask " + _random.Next(int.MaxValue);
+
+            var issue = new Issue(_jira, "TST", "TST-1")
+            {
+                Type = "5", //subtask
+                Summary = summaryValue
+            };
+            issue.SaveChanges();
+
+            var subtasks = _jira.GetIssuesFromJql("project = TST and parent = TST-1");
+
+            Assert.True(subtasks.Any(s => s.Summary.Equals(summaryValue)), 
+                String.Format("'{0}' was not found as a sub-task of TST-1", summaryValue));
         }
     }
 }

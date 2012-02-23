@@ -17,7 +17,7 @@ namespace Atlassian.Jira
     public class Issue : IRemoteIssueFieldProvider
     {
         private readonly Jira _jira;
-
+        private readonly string _parentIssueKey;
 
         private ComparableString _key;
         private string _project;
@@ -30,16 +30,15 @@ namespace Atlassian.Jira
         private ProjectComponentCollection _components = null;
         private CustomFieldCollection _customFields = null;
 
-
-        public Issue(Jira jira, string projectKey)
-            : this(jira, new RemoteIssue() { project = projectKey })
+        public Issue(Jira jira, string projectKey, string parentIssueKey = null)
+            : this(jira, new RemoteIssue() { project = projectKey }, parentIssueKey)
         {
         }
 
-        internal Issue(Jira jira, RemoteIssue remoteIssue)
+        internal Issue(Jira jira, RemoteIssue remoteIssue, string parentIssueKey = null)
         {
             _jira = jira;
-           
+            _parentIssueKey = parentIssueKey;
             Initialize(remoteIssue);
         }
 
@@ -282,8 +281,15 @@ namespace Atlassian.Jira
                 var token = _jira.GetAuthenticationToken();
                 var remoteIssue = this.ToRemote();
 
-                remoteIssue = _jira.RemoteSoapService.CreateIssue(token, remoteIssue);
-                
+                if (String.IsNullOrEmpty(_parentIssueKey))
+                {
+                    remoteIssue = _jira.RemoteSoapService.CreateIssue(token, remoteIssue);
+                }
+                else
+                {
+                    remoteIssue = _jira.RemoteSoapService.CreateIssueWithParent(token, remoteIssue, _parentIssueKey);
+                }
+
                 Initialize(remoteIssue);
             }
             else
@@ -316,31 +322,51 @@ namespace Atlassian.Jira
         }
 
         /// <summary>
-        /// Add attachment to this issue
+        /// Add one or more attachments to this issue
         /// </summary>
-        /// <param name="filePath">Full path of file to upload</param>
-        public void AddAttachment(string filePath)
+        /// <param name="filePaths">Full paths of files to upload</param>
+        public void AddAttachment(params string[] filePaths)
         {
-            this.AddAttachment(Path.GetFileName(filePath), _jira.FileSystem.FileReadAllBytes(filePath));
+            var attachments = filePaths.Select(f => new UploadAttachmentInfo(Path.GetFileName(f), _jira.FileSystem.FileReadAllBytes(f))).ToArray();
+
+            AddAttachment(attachments);
         }
 
         /// <summary>
-        /// Add attachment to this issue
+        /// Add an attachment to this issue
         /// </summary>
         /// <param name="name">Attachment name with extension</param>
         /// <param name="data">Attachment data</param>
         public void AddAttachment(string name, byte[] data)
+        {
+            AddAttachment(new UploadAttachmentInfo(name, data));
+        }
+
+        /// <summary>
+        /// Add one or more attachments to this issue
+        /// </summary>
+        public void AddAttachment(params UploadAttachmentInfo[] attachments)
         {
             if (String.IsNullOrEmpty(_originalIssue.key))
             {
                 throw new InvalidOperationException("Unable to upload attachments to server, issue has not been created.");
             }
 
-            string content = Convert.ToBase64String(data);
+            var content = new List<string>();
+            var names = new List<string>();
+            
+            foreach (var a in attachments)
+            {
+                names.Add(a.Name);
+                content.Add(Convert.ToBase64String(a.Data));
+            }
 
             var token = _jira.GetAuthenticationToken();
-
-            _jira.RemoteSoapService.AddBase64EncodedAttachmentsToIssue(token, _originalIssue.key, new string[] { name }, new string[] { content });
+            _jira.RemoteSoapService.AddBase64EncodedAttachmentsToIssue(
+                token, 
+                _originalIssue.key, 
+                names.ToArray(), 
+                content.ToArray());
         }
 
         /// <summary>
