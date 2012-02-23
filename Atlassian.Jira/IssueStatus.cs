@@ -28,7 +28,7 @@ namespace Atlassian.Jira
 
         protected override IEnumerable<JiraNamedEntity> GetEntities(Jira jira, string projectKey = null)
         {
-            return jira.GetIssueStatuses();
+            return (IEnumerable<JiraNamedEntity>) jira.GetIssueStatuses();
         }
 
         /// <summary>

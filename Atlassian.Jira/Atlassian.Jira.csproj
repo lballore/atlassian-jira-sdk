@@ -60,7 +60,7 @@
     <Compile Include="ProjectComponent.cs" />
     <Compile Include="ProjectComponentCollection.cs" />
     <Compile Include="JiraNamedEntityCollection.cs" />
-    <Compile Include="Remote\ExpressionVisitor.cs" />
+    <Compile Include="Linq\ExpressionVisitor.cs" />
     <Compile Include="Linq\JqlContainsEqualityAttribute.cs" />
     <Compile Include="FileSystem.cs" />
     <Compile Include="IFileSystem.cs" />
