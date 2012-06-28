@@ -20,6 +20,53 @@ namespace Atlassian.Jira.Test.Integration
         }
 
         [Fact]
+        void Transition_ResolveIssue()
+        {
+            var issue = _jira.CreateIssue("TST");
+            issue.Summary = "Issue to resolve " + _random.Next(int.MaxValue);
+            issue.Type = "Bug";
+            issue.SaveChanges();
+
+            issue.WorkflowTransition(WorkflowActions.Resolve);
+
+            Assert.Equal("Resolved", issue.Status.Name);
+            Assert.Equal("Fixed", issue.Resolution.Name);
+        }
+
+        [Fact]
+        void Transition_ResolveIssue_AsWontFix()
+        {
+            var issue = _jira.CreateIssue("TST");
+            issue.Summary = "Issue to resolve " + _random.Next(int.MaxValue);
+            issue.Type = "Bug";
+            issue.SaveChanges();
+
+            issue.Resolution = "Won't Fix";
+            issue.WorkflowTransition(WorkflowActions.Resolve);
+
+            Assert.Equal("Resolved", issue.Status.Name);
+            Assert.Equal("Won't Fix", issue.Resolution.Name);
+        }
+
+        [Fact]
+        public void GetFilters()
+        {
+            var filters = _jira.GetFilters();
+
+            Assert.Equal(1, filters.Count());
+            Assert.Equal("One Issue Filter", filters.First().Name);
+        }
+
+        [Fact]
+        public void GetIssuesFromFilter()
+        {
+            var issues = _jira.GetIssuesFromFilter("One Issue Filter");
+
+            Assert.Equal(1, issues.Count());
+            Assert.Equal("TST-1", issues.First().Key.Value);
+        }
+
+        [Fact]
         public void QueryWithZeroResults()
         {
             var issues = from i in _jira.Issues
@@ -30,7 +77,7 @@ namespace Atlassian.Jira.Test.Integration
         }
 
         [Fact]
-        public void SetNamedEntities_ById()
+        public void UpdateNamedEntities_ById()
         {
             var issue = _jira.CreateIssue("TST");
             issue.Summary = "AutoLoadNamedEntities_ById " + _random.Next(int.MaxValue);
@@ -46,7 +93,7 @@ namespace Atlassian.Jira.Test.Integration
         }
 
         [Fact]
-        public void SetNamedEntities_ByName()
+        public void UpdateNamedEntities_ByName()
         {
             var issue = _jira.CreateIssue("TST");
             issue.Summary = "AutoLoadNamedEntities_Name " + _random.Next(int.MaxValue);
@@ -62,7 +109,7 @@ namespace Atlassian.Jira.Test.Integration
         }
 
         [Fact]
-        public void AutoLoadNamedEntities()
+        public void RetrieveNamedEntities()
         {
             var issue = _jira.GetIssue("TST-1");
 
@@ -73,7 +120,7 @@ namespace Atlassian.Jira.Test.Integration
         }
 
         [Fact]
-        public void CreateAndQueryForIssueWithMinimumFieldsSet()
+        public void CreateAndQueryIssueWithMinimumFieldsSet()
         {
             var summaryValue = "Test Summary " + _random.Next(int.MaxValue);
 
@@ -123,6 +170,27 @@ namespace Atlassian.Jira.Test.Integration
                           select i).ToArray();
 
             Assert.Equal(summaryValue, queriedIssues[0].Summary);
+        }
+
+        [Fact]
+        public void UpdateIssueType()
+        {
+            var summaryValue = "Test Summary " + _random.Next(int.MaxValue);
+            var issue = new Issue(_jira, "TST")
+            {
+                Type = "1",
+                Summary = summaryValue
+            };
+            issue.SaveChanges();
+
+            //retrieve the issue from server and update
+            issue = _jira.GetIssue(issue.Key.Value);
+            issue.Type = "2";
+            issue.SaveChanges();
+
+            //retrieve again and verify
+            issue = _jira.GetIssue(issue.Key.Value);
+            Assert.Equal("2", issue.Type.Id);
         }
 
         [Fact]
@@ -198,7 +266,7 @@ namespace Atlassian.Jira.Test.Integration
         }
 
         [Fact]
-        public void AddingAndRetrievingComments()
+        public void AddAndGetComments()
         {
             var summaryValue = "Test Summary " + _random.Next(int.MaxValue);
             var issue = new Issue(_jira, "TST")
@@ -239,6 +307,16 @@ namespace Atlassian.Jira.Test.Integration
         }
 
         [Fact]
+        public void QueryIssueWithCustomDateField()
+        {
+            var issue = (from i in _jira.Issues
+                         where i["Custom Date Field"] <= new DateTime(2012,4,1)
+                         select i).First();
+
+            Assert.Equal("Sample bug in Test Project", issue.Summary);
+        }
+
+        [Fact]
         public void QueryIssuesWithTakeExpression()
         {
             // create 2 issues with same summary
@@ -255,7 +333,7 @@ namespace Atlassian.Jira.Test.Integration
         }
 
         [Fact]
-        public void IssueTypes()
+        public void GetIssueTypes()
         {
             var issueTypes = _jira.GetIssueTypes("TST");
 
@@ -280,7 +358,7 @@ namespace Atlassian.Jira.Test.Integration
         }
 
         [Fact]
-        public void RetrievesIssueStatuses()
+        public void GetIssueStatuses()
         {
             var statuses = _jira.GetIssueStatuses();
 
@@ -309,7 +387,7 @@ namespace Atlassian.Jira.Test.Integration
         public void GetCustomFields()
         {
             var fields = _jira.GetCustomFields();
-            Assert.Equal(1, fields.Count());
+            Assert.Equal(4, fields.Count());
         }
 
         [Fact]
@@ -327,7 +405,29 @@ namespace Atlassian.Jira.Test.Integration
         }
 
         [Fact]
-        public void UpdateVersionsOfIssue()
+        public void UpdateAssignee()
+        {
+            var summaryValue = "Test issue with assignee (Updated)" + _random.Next(int.MaxValue);
+
+            var issue = new Issue(_jira, "TST")
+            {
+                Type = "1",
+                Summary = summaryValue
+            };
+
+            issue.SaveChanges();
+
+            issue.Assignee = "test"; //username
+            issue.SaveChanges();
+            Assert.Equal("test", issue.Assignee);
+
+            issue.Assignee = "admin";
+            issue.SaveChanges();
+            Assert.Equal("admin", issue.Assignee);
+        }
+
+        [Fact]
+        public void UpdateVersions()
         {
             var summaryValue = "Test issue with versions (Updated)" + _random.Next(int.MaxValue);
 
@@ -416,7 +516,7 @@ namespace Atlassian.Jira.Test.Integration
         }
 
         [Fact]
-        public void UpdateComponentsOfIssue()
+        public void UpdateComponents()
         {
             var summaryValue = "Test issue with components (Updated)" + _random.Next(int.MaxValue);
 
@@ -510,7 +610,14 @@ namespace Atlassian.Jira.Test.Integration
             issue.AddWorklog("1d");
             issue.AddWorklog("1h", WorklogStrategy.RetainRemainingEstimate);
             issue.AddWorklog("1m", WorklogStrategy.NewRemainingEstimate, "2d");
-            Assert.Equal(3, issue.GetWorklogs().Count);
+
+            issue.AddWorklog(new Worklog("2d", new DateTime(2012, 1, 1), "comment"));
+
+            var logs = issue.GetWorklogs();
+            Assert.Equal(4, logs.Count);
+            Assert.Equal("comment", logs.ElementAt(3).Comment);
+            Assert.Equal(new DateTime(2012, 1, 1), logs.ElementAt(3).StartDate);
+
         }
 
         [Fact]
@@ -535,6 +642,24 @@ namespace Atlassian.Jira.Test.Integration
 
             Assert.True(subtasks.Any(s => s.Summary.Equals(summaryValue)), 
                 String.Format("'{0}' was not found as a sub-task of TST-1", summaryValue));
+        }
+
+        [Fact]
+        public void DeleteWorklog()
+        {
+            var summary = "Test issue with worklogs" + _random.Next(int.MaxValue);
+            var issue = new Issue(_jira, "TST")
+            {
+                Type = "1",
+                Summary = summary
+            };
+            issue.SaveChanges();
+
+            var worklog = issue.AddWorklog("1h");
+            Assert.Equal(1, issue.GetWorklogs().Count);
+
+            issue.DeleteWorklog(worklog);
+            Assert.Equal(0, issue.GetWorklogs().Count);
         }
     }
 }

@@ -56,6 +56,7 @@
     <Compile Include="CustomField.cs" />
     <Compile Include="CustomFieldCollection.cs" />
     <Compile Include="IssueType.cs" />
+    <Compile Include="LiteralMatch.cs" />
     <Compile Include="Project.cs" />
     <Compile Include="ProjectComponent.cs" />
     <Compile Include="ProjectComponentCollection.cs" />
@@ -89,8 +90,10 @@
     <Compile Include="ProjectVersionCollection.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="Remote\RemoteFieldNameAttribute.cs" />
     <Compile Include="Remote\RemoteWorklogPatchBehavior.cs" />
     <Compile Include="WebClientWrapper.cs" />
+    <Compile Include="WorkflowActions.cs" />
     <Compile Include="Worklog.cs" />
     <Compile Include="WorklogStrategy.cs" />
   </ItemGroup>

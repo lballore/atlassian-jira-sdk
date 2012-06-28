@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Linq.Expressions;
@@ -39,37 +40,50 @@ namespace Atlassian.Jira.Linq
             return new JqlData { Expression = Jql, NumberOfResults = _numberOfResults };
         }
 
-        private string GetFieldName(PropertyInfo fieldInfo)
+        private string GetFieldNameFromBinaryExpression(BinaryExpression expression)
         {
-            var attributes = fieldInfo.GetCustomAttributes(typeof(JqlFieldNameAttribute), true);
-            if (attributes.Count() > 0)
+            PropertyInfo propertyInfo = null;
+            if(TryGetPropertyInfoFromBinaryExpression(expression, out propertyInfo))
             {
-                return ((JqlFieldNameAttribute)attributes[0]).Name;
+                var attributes = propertyInfo.GetCustomAttributes(typeof(JqlFieldNameAttribute), true);
+                if (attributes.Count() > 0)
+                {
+                    return ((JqlFieldNameAttribute)attributes[0]).Name;
+                }
+                else
+                {
+                    return propertyInfo.Name;
+                }
             }
-            else
+
+            var methodCallExpression = expression.Left as MethodCallExpression;
+            if (methodCallExpression != null)
             {
-                return fieldInfo.Name;
+                return String.Format("\"{0}\"", ((ConstantExpression)methodCallExpression.Arguments[0]).Value);
             }
+
+            throw new NotSupportedException(String.Format(
+                   "Operator '{0}' can only be applied on properties and property indexers.",
+                   expression.NodeType));
         }
 
-        private PropertyInfo GetFieldFromBinaryExpression(BinaryExpression expression)
+        private bool TryGetPropertyInfoFromBinaryExpression(BinaryExpression expression, out PropertyInfo propertyInfo)
         {
             var memberExpression = expression.Left as MemberExpression;
             if (memberExpression != null)
             {
-                var propertyInfo = memberExpression.Member as PropertyInfo;
+                propertyInfo = memberExpression.Member as PropertyInfo;
                 if (propertyInfo != null)
                 {
-                    return propertyInfo;
+                    return true;
                 }
             }
 
-            throw new NotSupportedException(String.Format(
-                   "Operator '{0}' can only be applied on property member fields.",
-                   expression.NodeType));
+            propertyInfo = null;
+            return false;
         }
 
-        private object GetValueFromBinaryExpression(BinaryExpression expression)
+        private object GetFieldValueFromBinaryExpression(BinaryExpression expression)
         {
             if (expression.Right.NodeType == ExpressionType.Constant)
             {
@@ -95,11 +109,11 @@ namespace Atlassian.Jira.Linq
 
         private void ProcessGreaterAndLessThanOperator(BinaryExpression expression, string operatorString)
         {
-            var field = GetFieldFromBinaryExpression(expression);
-            var value = GetValueFromBinaryExpression(expression);
+            var fieldName = GetFieldNameFromBinaryExpression(expression);
+            var value = GetFieldValueFromBinaryExpression(expression);
 
             // field
-            _jqlWhere.Append(field.Name);
+            _jqlWhere.Append(fieldName);
 
             // operator
             _jqlWhere.Append(String.Format(" {0} ", operatorString));
@@ -122,25 +136,35 @@ namespace Atlassian.Jira.Linq
 
         private void ProcessIndexedMemberEqualityOperator(BinaryExpression expression, bool equal)
         {
-            var methodExpression = expression.Left as MethodCallExpression;
+            var fieldName = GetFieldNameFromBinaryExpression(expression);
+            var fieldValue = GetFieldValueFromBinaryExpression(expression);
 
             // field
-            _jqlWhere.Append(String.Format("\"{0}\"", ((ConstantExpression)methodExpression.Arguments[0]).Value));
+            _jqlWhere.Append(fieldName);
 
             // operator
-            _jqlWhere.Append(String.Format(" {0} ", equal ? JiraOperators.CONTAINS : JiraOperators.NOTCONTAINS));
+            string operatorString;
+            if (fieldValue is string)
+            {
+                operatorString = equal ? JiraOperators.CONTAINS : JiraOperators.NOTCONTAINS;
+            }
+            else
+            {
+                operatorString = equal ? JiraOperators.EQUALS : JiraOperators.NOTEQUALS;
+            }
+            _jqlWhere.Append(String.Format(" {0} ", operatorString));
 
             // value
-            ProcessConstant(GetValueFromBinaryExpression(expression));
+            ProcessConstant(fieldValue);
         }
 
         private void ProcessMemberEqualityOperator(BinaryExpression expression, bool equal)
         {
-            var field = GetFieldFromBinaryExpression(expression);
-            var value = GetValueFromBinaryExpression(expression);
+            var field = GetFieldNameFromBinaryExpression(expression);
+            var value = GetFieldValueFromBinaryExpression(expression);
 
             // field
-            _jqlWhere.Append(GetFieldName(field));
+            _jqlWhere.Append(field);
 
             // special cases for empty/null string
             if (value == null || value.Equals(""))
@@ -154,7 +178,9 @@ namespace Atlassian.Jira.Linq
 
             // operator
             var operatorString = String.Empty;
-            if(field.GetCustomAttributes(typeof(JqlContainsEqualityAttribute), true).Count() > 0)
+            PropertyInfo propertyInfo = null;
+            if(TryGetPropertyInfoFromBinaryExpression(expression, out propertyInfo)
+                && propertyInfo.GetCustomAttributes(typeof(JqlContainsEqualityAttribute), true).Count() > 0)
             {
                 operatorString = equal? JiraOperators.CONTAINS: JiraOperators.NOTCONTAINS;
             }
@@ -172,7 +198,8 @@ namespace Atlassian.Jira.Linq
         {
             var valueType = value.GetType();
             if (valueType == typeof(String)
-                || valueType == typeof(ComparableString))
+                || valueType == typeof(ComparableString)
+                || valueType == typeof(LiteralMatch))
             {
                 _jqlWhere.Append(String.Format("\"{0}\"", value));
             }

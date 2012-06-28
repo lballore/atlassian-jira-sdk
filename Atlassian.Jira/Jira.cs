@@ -15,12 +15,14 @@ namespace Atlassian.Jira
     {
         private const int DEFAULT_MAX_ISSUES_PER_REQUEST = 20;
         private const string ALL_PROJECTS_KEY = "[ALL_PROJECTS]";
+        private const string REMOTE_AUTH_EXCEPTION_STRING = "com.atlassian.jira.rpc.exception.RemoteAuthenticationException";
 
         private readonly JiraQueryProvider _provider;
         private readonly IJiraSoapServiceClient _jiraSoapService;
         private readonly IFileSystem _fileSystem;
         private readonly string _username = null;
         private readonly string _password = null;
+        private readonly bool _isAnonymous = false;
 
         private string _token = String.Empty;
         private Dictionary<string, IEnumerable<ProjectVersion>> _cachedVersions = new Dictionary<string,IEnumerable<ProjectVersion>>();
@@ -28,6 +30,7 @@ namespace Atlassian.Jira
         private Dictionary<string, IEnumerable<JiraNamedEntity>> _cachedFieldsForEdit = new Dictionary<string, IEnumerable<JiraNamedEntity>>();
         private Dictionary<string, IEnumerable<IssueType>> _cachedIssueTypes = new Dictionary<string, IEnumerable<IssueType>>();
         private IEnumerable<JiraNamedEntity> _cachedCustomFields = null;
+        private IEnumerable<JiraNamedEntity> _cachedFilters = null;
         private IEnumerable<IssuePriority> _cachedPriorities = null;
         private IEnumerable<IssueStatus> _cachedStatuses = null;
         private IEnumerable<IssueResolution> _cachedResolutions = null;
@@ -68,6 +71,7 @@ namespace Atlassian.Jira
         {
             _username = username;
             _password = password;
+            _isAnonymous = String.IsNullOrEmpty(username) && String.IsNullOrEmpty(password);
             _jiraSoapService = jiraSoapService;
             _fileSystem = fileSystem;
             this.MaxIssuesPerRequest = DEFAULT_MAX_ISSUES_PER_REQUEST;
@@ -132,17 +136,6 @@ namespace Atlassian.Jira
                 return new JiraQueryable<Issue>(_provider);
             }
         }
-        
-        internal string GetAuthenticationToken()
-        {
-            if (!String.IsNullOrEmpty(_username) 
-                && !String.IsNullOrEmpty(_password) && String.IsNullOrEmpty(_token))
-            {
-                _token = _jiraSoapService.Login(_username, _password);
-            }
-
-            return _token;
-        }
 
         /// <summary>
         /// Gets an issue from the JIRA server
@@ -154,6 +147,27 @@ namespace Atlassian.Jira
             return (from i in Issues
                     where i.Key == key
                     select i).First();
+        }
+
+        /// <summary>
+        /// Returns issues that match the specified filter
+        /// </summary>
+        /// <param name="filterName">The name of the filter used for the search</param>
+        /// <param name="start">The place in the result set to use as the first issue returned</param>
+        /// <param name="maxResults">The maximum number of issues to return</param>
+        public IEnumerable<Issue> GetIssuesFromFilter(string filterName, int start = 0, int? maxResults = null)
+        {
+            var filter = this.GetFilters().FirstOrDefault(f => f.Name.Equals(filterName, StringComparison.OrdinalIgnoreCase));
+
+            if (filter == null)
+            {
+                throw new InvalidOperationException(String.Format("Filter with name '{0}' was not found", filterName));
+            }
+
+            return WithToken(token =>
+            {
+                return _jiraSoapService.GetIssuesFromFilterWithLimit(token, filter.Id, start, maxResults ?? this.MaxIssuesPerRequest).Select(i => new Issue(this, i));
+            });
         }
 
         /// <summary>
@@ -179,14 +193,15 @@ namespace Atlassian.Jira
                 Console.WriteLine("JQL: " + jql);
             }
 
-            var token = GetAuthenticationToken();
-
             IList<Issue> issues = new List<Issue>();
 
-            foreach (RemoteIssue remoteIssue in _jiraSoapService.GetIssuesFromJqlSearch(token, jql, maxIssues?? MaxIssuesPerRequest))
+            WithToken(t =>
             {
-                issues.Add(new Issue(this, remoteIssue));
-            }
+                foreach (RemoteIssue remoteIssue in _jiraSoapService.GetIssuesFromJqlSearch(t, jql, maxIssues ?? MaxIssuesPerRequest))
+                {
+                    issues.Add(new Issue(this, remoteIssue));
+                }
+            });
 
             return issues;
         }
@@ -220,8 +235,10 @@ namespace Atlassian.Jira
 
             if (!_cachedIssueTypes.ContainsKey(projectKey))
             {
-                var token = GetAuthenticationToken();
-                _cachedIssueTypes.Add(projectKey, _jiraSoapService.GetIssueTypes(token, projectId).Select(t => new IssueType(t)));
+                WithToken(token =>
+                {
+                    _cachedIssueTypes.Add(projectKey, _jiraSoapService.GetIssueTypes(token, projectId).Select(t => new IssueType(t)));
+                });
             }
 
             return _cachedIssueTypes[projectKey];
@@ -236,8 +253,10 @@ namespace Atlassian.Jira
         {
             if (!_cachedVersions.ContainsKey(projectKey))
             {
-                var token = GetAuthenticationToken();
-                _cachedVersions.Add(projectKey, _jiraSoapService.GetVersions(token, projectKey).Select(v => new ProjectVersion(v)));
+                WithToken(token =>
+                {
+                    _cachedVersions.Add(projectKey, _jiraSoapService.GetVersions(token, projectKey).Select(v => new ProjectVersion(v)));
+                });
             }
 
             return _cachedVersions[projectKey];            
@@ -252,8 +271,10 @@ namespace Atlassian.Jira
         {
             if (!_cachedComponents.ContainsKey(projectKey))
             {
-                var token = GetAuthenticationToken();
-                _cachedComponents.Add(projectKey, _jiraSoapService.GetComponents(token, projectKey).Select(c => new ProjectComponent(c)));
+                WithToken(token =>
+                {
+                    _cachedComponents.Add(projectKey, _jiraSoapService.GetComponents(token, projectKey).Select(c => new ProjectComponent(c)));
+                });
             }
 
             return _cachedComponents[projectKey];
@@ -267,8 +288,10 @@ namespace Atlassian.Jira
         {
             if (_cachedPriorities == null)
             {
-                var token = GetAuthenticationToken();
-                _cachedPriorities = _jiraSoapService.GetPriorities(token).Select(p => new IssuePriority(p));
+                WithToken(token =>
+                {
+                    _cachedPriorities = _jiraSoapService.GetPriorities(token).Select(p => new IssuePriority(p));
+                });
             }
 
             return _cachedPriorities;
@@ -282,8 +305,10 @@ namespace Atlassian.Jira
         {
             if (_cachedStatuses == null)
             {
-                var token = GetAuthenticationToken();
-                _cachedStatuses = _jiraSoapService.GetStatuses(token).Select(s => new IssueStatus(s));
+                WithToken(token =>
+                {
+                    _cachedStatuses = _jiraSoapService.GetStatuses(token).Select(s => new IssueStatus(s));
+                });
             }
 
             return _cachedStatuses;
@@ -297,8 +322,10 @@ namespace Atlassian.Jira
         {
             if (_cachedResolutions == null)
             {
-                var token = GetAuthenticationToken();
-                _cachedResolutions = _jiraSoapService.GetResolutions(token).Select(r => new IssueResolution(r));
+                WithToken(token =>
+                {
+                    _cachedResolutions = _jiraSoapService.GetResolutions(token).Select(r => new IssueResolution(r));
+                });
             }
 
             return _cachedResolutions;
@@ -312,25 +339,120 @@ namespace Atlassian.Jira
         {
             if (_cachedCustomFields == null)
             {
-                var token = GetAuthenticationToken();
-                _cachedCustomFields = _jiraSoapService.GetCustomFields(token).Select(f => new JiraNamedEntity(f));
+                WithToken(token =>
+                {
+                    _cachedCustomFields = _jiraSoapService.GetCustomFields(token).Select(f => new JiraNamedEntity(f));
+                });
             }
             return _cachedCustomFields;
         }
 
         /// <summary>
+        /// Returns the favourite filters for the user
+        /// </summary>
+        public IEnumerable<JiraNamedEntity> GetFilters()
+        {
+            if (_cachedFilters == null)
+            {
+                WithToken(token =>
+                {
+                    _cachedFilters = _jiraSoapService.GetFavouriteFilters(token).Select(f => new JiraNamedEntity(f));
+                });
+            }
+
+            return _cachedFilters;
+        }
+
+        /// <summary>
         /// Returns all projects defined in JIRA
         /// </summary>
-        /// <returns></returns>
         public IEnumerable<Project> GetProjects()
         {
             if (_cachedProjects == null)
             {
-                var token = GetAuthenticationToken();
-                _cachedProjects = _jiraSoapService.GetProjects(token).Select(p => new Project(p));
+                WithToken(token =>
+                {
+                    _cachedProjects = _jiraSoapService.GetProjects(token).Select(p => new Project(p));
+                });
             }
 
             return _cachedProjects;
+        }
+
+        /// <summary>
+        /// Executes an action using the user's authentication token.
+        /// </summary>
+        /// <remarks>
+        /// If action fails with 'com.atlassian.jira.rpc.exception.RemoteAuthenticationException'
+        /// a new token will be requested from server and the action called again.
+        /// </remarks>
+        public void WithToken(Action<string> action)
+        {
+            WithToken<object>(t =>
+            {
+                action(t);
+                return null;
+            });
+        }
+
+        /// <summary>
+        /// Executes an action using the user's authentication token and the jira soap client
+        /// </summary>
+        /// <remarks>
+        /// If action fails with 'com.atlassian.jira.rpc.exception.RemoteAuthenticationException'
+        /// a new token will be requested from server and the action called again.
+        /// </remarks>
+        public void WithToken(Action<string, IJiraSoapServiceClient> action)
+        {
+            WithToken<object>((token, client) =>
+            {
+                action(token, client);
+                return null;
+            });
+        }
+
+        /// <summary>
+        /// Executes a function using the user's authentication token.
+        /// </summary>
+        /// <remarks>
+        /// If function fails with 'com.atlassian.jira.rpc.exception.RemoteAuthenticationException'
+        /// a new token will be requested from server and the function called again.
+        /// </remarks>
+        public TResult WithToken<TResult>(Func<string, TResult> function)
+            where TResult: class
+        {
+            return WithToken((token, client) => function(token));
+        }
+
+        /// <summary>
+        /// Executes a function using the user's authentication token and the jira soap client
+        /// </summary>
+        /// <remarks>
+        /// If function fails with 'com.atlassian.jira.rpc.exception.RemoteAuthenticationException'
+        /// a new token will be requested from server and the function called again.
+        /// </remarks>
+        public TResult WithToken<TResult>(Func<string, IJiraSoapServiceClient, TResult> function)
+        {
+            if (!_isAnonymous && String.IsNullOrEmpty(_token))
+            {
+                _token = _jiraSoapService.Login(_username, _password);
+            }
+
+            try
+            {
+                return function(_token, this.RemoteSoapService);
+            }
+            catch (FaultException fe)
+            {
+                if (_isAnonymous
+                    || fe.Message.IndexOf(REMOTE_AUTH_EXCEPTION_STRING, StringComparison.OrdinalIgnoreCase) < 0)
+                {
+                    throw;
+                }
+
+                _token = _jiraSoapService.Login(_username, _password);
+                return function(_token, this.RemoteSoapService);
+            }
         }
 
         internal IEnumerable<JiraNamedEntity> GetFieldsForEdit(string projectKey)
@@ -346,8 +468,10 @@ namespace Atlassian.Jira
                     throw new InvalidOperationException("Project must contain at least one issue to be able to retrieve issue fields.");
                 }
 
-                var token = GetAuthenticationToken();
-                _cachedFieldsForEdit.Add(projectKey, _jiraSoapService.GetFieldsForEdit(token, tempIssue.Key.Value).Select(f => new JiraNamedEntity(f)));
+                WithToken(token =>
+                {
+                    _cachedFieldsForEdit.Add(projectKey, _jiraSoapService.GetFieldsForEdit(token, tempIssue.Key.Value).Select(f => new JiraNamedEntity(f)));
+                });
             }
 
             return _cachedFieldsForEdit[projectKey];
