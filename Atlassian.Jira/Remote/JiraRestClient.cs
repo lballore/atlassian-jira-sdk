@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Specialized;
 using System.Diagnostics;
 using System.Net;
 using System.Threading;
@@ -17,6 +18,12 @@ namespace Atlassian.Jira.Remote
     {
         private readonly RestClient _restClient;
         private readonly JiraRestClientSettings _clientSettings;
+
+        private class UrlWithQuery
+        {
+            public string Path { get; set; }
+            public NameValueCollection Query { get; set; } = new NameValueCollection();
+        }
 
         /// <summary>
         /// Creates a new instance of the JiraRestClient class.
@@ -94,8 +101,9 @@ namespace Atlassian.Jira.Remote
             }
 
             var request = new RestRequest();
+            var url = ParseUrl(resource);
             request.Method = method;
-            request.Resource = resource;
+            request.Resource = url.Path;
             request.RequestFormat = DataFormat.Json;
 
             if (requestBody is string)
@@ -111,6 +119,11 @@ namespace Atlassian.Jira.Remote
             {
                 request.JsonSerializer = new RestSharpJsonSerializer(JsonSerializer.Create(Settings.JsonSerializerSettings));
                 request.AddJsonBody(requestBody);
+            }
+
+            foreach (var key in url.Query.AllKeys)
+            {
+                request.AddQueryParameter(key, url.Query[key]);
             }
 
             LogRequest(request, requestBody);
@@ -212,6 +225,33 @@ namespace Atlassian.Jira.Remote
 
                 return parsedContent;
             }
+        }
+
+        private static UrlWithQuery ParseUrl(string url)
+        {
+            var result = new UrlWithQuery() { Path = url };
+            var index = url.IndexOf('?');
+
+            if (index >= 0 && url.Length > (index + 1))
+            {
+                result.Path = url.Substring(0, index - 1);
+                var query = url.Substring(index + 1);
+
+                foreach (string valuePair in query.Split('&'))
+                {
+                    string[] singlePair = valuePair.Split('=');
+                    if (singlePair.Length == 2)
+                    {
+                        result.Query.Add(WebUtility.UrlDecode(singlePair[0]), WebUtility.UrlDecode(singlePair[1]));
+                    }
+                    else
+                    {
+                        result.Query.Add(WebUtility.UrlDecode(singlePair[0]), string.Empty);
+                    }
+                }
+            }
+
+            return result;
         }
     }
 }
