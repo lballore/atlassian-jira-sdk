@@ -1,4 +1,4 @@
-using Atlassian.Jira.Linq;
+﻿using Atlassian.Jira.Linq;
 using Atlassian.Jira.Remote;
 using System;
 using System.Collections.Generic;
@@ -900,6 +900,22 @@ namespace Atlassian.Jira
             }
 
             return _jira.Issues.GetWorklogsAsync(_originalIssue.key, token);
+        }
+
+        /// <summary>
+        /// Retrieve worklogs for this issue.
+        /// </summary>
+        /// <param name="maxWorklogs">Maximum number of worklogs to retrieve.</param>
+        /// <param name="startAt">Index of the first worklog to return (0-based).</param>
+        /// <param name="token">Cancellation token for this operation.</param>
+        public Task<IPagedQueryResult<Worklog>> GetPagedWorklogsAsync(int? maxWorklogs = null, int startAt = 0, CancellationToken token = default(CancellationToken))
+        {
+            if (String.IsNullOrEmpty(_originalIssue.key))
+            {
+                throw new InvalidOperationException("Unable to retrieve worklogs, issue has not been saved to server.");
+            }
+
+            return _jira.Issues.GetPagedWorklogsAsync(_originalIssue.key, maxWorklogs, startAt, token);
         }
 
         /// <summary>

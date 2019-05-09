@@ -266,6 +266,15 @@ namespace Atlassian.Jira
         Task<IEnumerable<Worklog>> GetWorklogsAsync(string issueKey, CancellationToken token = default(CancellationToken));
 
         /// <summary>
+        /// Gets the worklogs for an issue.
+        /// </summary>
+        /// <param name="issueKey">Issue key to retrieve the worklogs from.</param>
+        /// <param name="maxWorklogs">Maximum number of worklogs to retrieve.</param>
+        /// <param name="startAt">Index of the first worklog to return (0-based).</param>
+        /// <param name="token">Cancellation token for this operation.</param>
+        Task<IPagedQueryResult<Worklog>> GetPagedWorklogsAsync(string issueKey, int? maxWorklogs = null, int startAt = 0, CancellationToken token = default(CancellationToken));
+
+        /// <summary>
         /// Adds a work log to an issue.
         /// </summary>
         /// <param name="issueKey">Issue key to add the worklog to.</param>

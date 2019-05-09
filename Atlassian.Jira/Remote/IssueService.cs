@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -547,13 +547,26 @@ namespace Atlassian.Jira.Remote
 
         public async Task<IEnumerable<Worklog>> GetWorklogsAsync(string issueKey, CancellationToken token = default(CancellationToken))
         {
-            var resource = String.Format("rest/api/2/issue/{0}/worklog", issueKey);
-            var serializerSettings = _jira.RestClient.Settings.JsonSerializerSettings;
+            return await GetPagedWorklogsAsync(issueKey, null, 0, token);
+        }
+
+        public async Task<IPagedQueryResult<Worklog>> GetPagedWorklogsAsync(string issueKey, int? maxWorklogs = null, int startAt = 0, CancellationToken token = default(CancellationToken))
+        {
+            var resource = $"rest/api/2/issue/{issueKey}/worklog?startAt={startAt}";
+
+            if (maxWorklogs.HasValue)
+            {
+                resource += $"&maxResults={maxWorklogs.Value}";
+            }
+
             var response = await _jira.RestClient.ExecuteRequestAsync(Method.GET, resource, null, token).ConfigureAwait(false);
+            var serializerSettings = _jira.RestClient.Settings.JsonSerializerSettings;
+
             var worklogsJson = response["worklogs"];
             var remoteWorklogs = JsonConvert.DeserializeObject<RemoteWorklog[]>(worklogsJson.ToString(), serializerSettings);
+            var worklogs = remoteWorklogs.Select(w => new Worklog(w));
 
-            return remoteWorklogs.Select(w => new Worklog(w));
+            return PagedQueryResult<Worklog>.FromJson((JObject)response, worklogs);
         }
 
         public async Task<Worklog> GetWorklogAsync(string issueKey, string worklogId, CancellationToken token = default(CancellationToken))
