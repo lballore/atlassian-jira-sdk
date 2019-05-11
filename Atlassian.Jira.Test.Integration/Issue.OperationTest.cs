@@ -560,7 +560,7 @@ namespace Atlassian.Jira.Test.Integration
         }
 
         [Fact]
-        public void AddAndGetWorklogs()
+        public async Task AddAndGetWorklogs()
         {
             var summaryValue = "Test issue with work logs" + _random.Next(int.MaxValue);
 
@@ -572,16 +572,21 @@ namespace Atlassian.Jira.Test.Integration
             };
             issue.SaveChanges();
 
-            issue.AddWorklogAsync("1d").Wait();
-            issue.AddWorklogAsync("1h", WorklogStrategy.RetainRemainingEstimate).Wait();
-            issue.AddWorklogAsync("1m", WorklogStrategy.NewRemainingEstimate, "2d").Wait();
+            await issue.AddWorklogAsync("1d");
+            await issue.AddWorklogAsync("1h", WorklogStrategy.RetainRemainingEstimate);
+            await issue.AddWorklogAsync("1m", WorklogStrategy.NewRemainingEstimate, "2d");
+            await issue.AddWorklogAsync(new Worklog("2d", new DateTime(2012, 1, 1), "comment"));
 
-            issue.AddWorklogAsync(new Worklog("2d", new DateTime(2012, 1, 1), "comment")).Wait();
-
-            var logs = issue.GetWorklogsAsync().Result;
+            var logs = await issue.GetWorklogsAsync();
             Assert.Equal(4, logs.Count());
             Assert.Equal("comment", logs.ElementAt(3).Comment);
             Assert.Equal(new DateTime(2012, 1, 1), logs.ElementAt(3).StartDate);
+
+            var pagedLogs = await issue.GetPagedWorklogsAsync(2);
+            Assert.Equal(4, pagedLogs.TotalItems);
+            Assert.Equal(4, pagedLogs.ItemsPerPage);
+            Assert.Equal(0, pagedLogs.StartAt);
+            Assert.Equal("comment", pagedLogs.Last().Comment);
         }
 
         [Fact]
