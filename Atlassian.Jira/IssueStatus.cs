@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using System.Threading.Tasks;
 using Atlassian.Jira.Remote;
@@ -9,8 +8,6 @@ namespace Atlassian.Jira
     /// <summary>
     /// The status of the issue as defined in JIRA
     /// </summary>
-    [SuppressMessage("N/A", "CS0660", Justification = "Operator overloads are used for LINQ to JQL provider.")]
-    [SuppressMessage("N/A", "CS0661", Justification = "Operator overloads are used for LINQ to JQL provider.")]
     public class IssueStatus : JiraNamedConstant
     {
         /// <summary>
@@ -47,10 +44,9 @@ namespace Atlassian.Jira
         {
             if (name != null)
             {
-                int id;
-                if (int.TryParse(name, out id))
+                if (int.TryParse(name, out _))
                 {
-                    return new IssueStatus(name /*as id*/);
+                    return new IssueStatus(name);
                 }
                 else
                 {
@@ -71,7 +67,7 @@ namespace Atlassian.Jira
         /// </remarks>
         public static bool operator ==(IssueStatus entity, string name)
         {
-            if ((object)entity == null)
+            if (entity is null)
             {
                 return name == null;
             }
@@ -93,7 +89,7 @@ namespace Atlassian.Jira
         /// </remarks>
         public static bool operator !=(IssueStatus entity, string name)
         {
-            if ((object)entity == null)
+            if (entity is null)
             {
                 return name != null;
             }
@@ -104,6 +100,31 @@ namespace Atlassian.Jira
             else
             {
                 return entity.Name != name;
+            }
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (obj is IssueStatus other)
+            {
+                return string.Equals(this.Id, other.Id)
+                    && string.Equals(this.Name, other.Name)
+                    && Equals(this.StatusCategory, other.StatusCategory);
+            }
+
+            return false;
+        }
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                int hash = 17;
+                hash = hash * 23 + (this.Id != null ? this.Id.GetHashCode() : 0);
+                hash = hash * 23 + (this.Name != null ? this.Name.GetHashCode() : 0);
+                hash = hash * 23 + (this.StatusCategory != null ? this.StatusCategory.GetHashCode() : 0);
+
+                return hash;
             }
         }
     }

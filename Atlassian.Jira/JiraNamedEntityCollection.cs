@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -9,8 +8,6 @@ using Atlassian.Jira.Remote;
 
 namespace Atlassian.Jira
 {
-    [SuppressMessage("N/A", "CS0660", Justification = "Operator overloads are used for LINQ to JQL provider.")]
-    [SuppressMessage("N/A", "CS0661", Justification = "Operator overloads are used for LINQ to JQL provider.")]
     public class JiraNamedEntityCollection<T> : Collection<T>, IRemoteIssueFieldProvider where T : JiraNamedEntity
     {
         protected readonly Jira _jira;
@@ -29,12 +26,36 @@ namespace Atlassian.Jira
 
         public static bool operator ==(JiraNamedEntityCollection<T> list, string value)
         {
-            return (object)list == null ? value == null : list.Any(v => v.Name == value);
+            return list is null ? value == null : list.Any(v => v.Name == value);
         }
 
         public static bool operator !=(JiraNamedEntityCollection<T> list, string value)
         {
-            return (object)list == null ? value == null : !list.Any(v => v.Name == value);
+            return list is null ? value == null : list.Any(v => v.Name == value) is false;
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (obj is JiraNamedEntityCollection<T> list)
+            {
+                return Enumerable.SequenceEqual(this, list);
+            }
+
+            return false;
+        }
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                int hash = 17;
+                foreach (var item in this)
+                {
+                    hash = hash * 23 + (item != null ? item.GetHashCode() : 0);
+                }
+
+                return hash;
+            }
         }
 
         /// <summary>

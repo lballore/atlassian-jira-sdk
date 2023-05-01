@@ -56,7 +56,7 @@ namespace Atlassian.Jira.Remote
 
         public JToken ToJson(string[] values)
         {
-            return float.Parse(values[0], CultureInfo.InvariantCulture);
+            return decimal.Parse(values[0], CultureInfo.InvariantCulture);
         }
     }
 
@@ -142,10 +142,9 @@ namespace Atlassian.Jira.Remote
 
         public JToken ToJson(string[] values)
         {
-            string val = values != null ? values.FirstOrDefault() : null;
-            int id = 0;
+            var val = values?.FirstOrDefault();
 
-            if (int.TryParse(val, out id))
+            if (int.TryParse(val, out int id))
             {
                 return id;
             }
@@ -160,8 +159,8 @@ namespace Atlassian.Jira.Remote
         {
             return JsonConvert
                 .DeserializeObject<List<Sprint>>(json.ToString())
-                .OrderByDescending(x => x.endDate)
-                .Select(x => x.name)
+                .OrderByDescending(x => x.EndDate)
+                .Select(x => x.Name)
                 .ToArray();
         }
 
@@ -176,17 +175,5 @@ namespace Atlassian.Jira.Remote
 
             return val;
         }
-    }
-
-    internal class Sprint
-    {
-        public int id { get; set; }
-        public string name { get; set; }
-        public string state { get; set; }
-        public int boardId { get; set; }
-        public string goal { get; set; }
-        public DateTime startDate { get; set; }
-        public DateTime endDate { get; set; }
-        public DateTime completeDate { get; set; }
     }
 }

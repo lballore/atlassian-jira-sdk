@@ -69,8 +69,9 @@ namespace Atlassian.Jira
             {
                 var entities = await this.GetEntitiesAsync(jira, token).ConfigureAwait(false);
                 var entity = entities.FirstOrDefault(e =>
-                    (!String.IsNullOrEmpty(Name) && String.Equals(e.Name, this.Name, StringComparison.OrdinalIgnoreCase)) ||
-                    (!String.IsNullOrEmpty(Id) && String.Equals(e.Id, this.Id, StringComparison.OrdinalIgnoreCase)));
+                    (String.IsNullOrEmpty(Name) is false && String.Equals(e.Name, this.Name, StringComparison.OrdinalIgnoreCase)) ||
+                    (String.IsNullOrEmpty(Id) is false && String.Equals(e.Id, this.Id, StringComparison.OrdinalIgnoreCase))
+                );
 
                 if (entity == null)
                 {

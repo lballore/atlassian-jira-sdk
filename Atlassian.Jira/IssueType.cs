@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -11,8 +10,6 @@ namespace Atlassian.Jira
     /// <summary>
     /// The type of the issue as defined in JIRA
     /// </summary>
-    [SuppressMessage("N/A", "CS0660", Justification = "Operator overloads are used for LINQ to JQL provider.")]
-    [SuppressMessage("N/A", "CS0661", Justification = "Operator overloads are used for LINQ to JQL provider.")]
     public class IssueType : JiraNamedConstant
     {
         /// <summary>
@@ -73,10 +70,9 @@ namespace Atlassian.Jira
         {
             if (name != null)
             {
-                int id;
-                if (int.TryParse(name, out id))
+                if (int.TryParse(name, out _))
                 {
-                    return new IssueType(name /*as id*/);
+                    return new IssueType(name);
                 }
                 else
                 {
@@ -97,7 +93,7 @@ namespace Atlassian.Jira
         /// </remarks>
         public static bool operator ==(IssueType entity, string name)
         {
-            if ((object)entity == null)
+            if (entity is null)
             {
                 return name == null;
             }
@@ -119,7 +115,7 @@ namespace Atlassian.Jira
         /// </remarks>
         public static bool operator !=(IssueType entity, string name)
         {
-            if ((object)entity == null)
+            if (entity is null)
             {
                 return name != null;
             }
@@ -130,6 +126,33 @@ namespace Atlassian.Jira
             else
             {
                 return entity.Name != name;
+            }
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (obj is IssueType other)
+            {
+                return string.Equals(this.Id, other.Id)
+                    && string.Equals(this.Name, other.Name)
+                    && this.IsSubTask == other.IsSubTask
+                    && Enumerable.SequenceEqual(this.Statuses, other.Statuses);
+            }
+
+            return false;
+        }
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                int hash = 17;
+                hash = hash * 23 + (this.Id != null ? this.Id.GetHashCode() : 0);
+                hash = hash * 23 + (this.Name != null ? this.Name.GetHashCode() : 0);
+                hash = hash * 23 + this.IsSubTask.GetHashCode();
+                hash = hash * 23 + (this.Statuses != null ? this.Statuses.GetHashCode() : 0);
+
+                return hash;
             }
         }
     }

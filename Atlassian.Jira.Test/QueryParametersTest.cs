@@ -16,13 +16,13 @@ namespace Atlassian.Jira.Test
 
             // Assert
             Assert.NotNull(parameters);
-            Assert.Equal(parameters.Count(), 2);
+            Assert.Equal(2, parameters.Count());
 
-            Assert.Equal(parameters.First().Name, "field1");
-            Assert.Equal(parameters.First().Value, "9");
+            Assert.Equal("field1", parameters.First().Name);
+            Assert.Equal("9", parameters.First().Value);
 
-            Assert.Equal(parameters.ElementAt(1).Name, "field2");
-            Assert.Equal(parameters.ElementAt(1).Value, "Test");
+            Assert.Equal("field2", parameters.ElementAt(1).Name);
+            Assert.Equal("Test", parameters.ElementAt(1).Value);
         }
 
         [Fact]
@@ -36,10 +36,10 @@ namespace Atlassian.Jira.Test
 
             // Assert
             Assert.NotNull(parameters);
-            Assert.Equal(parameters.Count(), 1);
+            Assert.Single(parameters);
 
-            Assert.Equal(parameters.First().Name, "field1");
-            Assert.Equal(parameters.First().Value, "");
+            Assert.Equal("field1", parameters.First().Name);
+            Assert.Equal("", parameters.First().Value);
         }
 
         [Fact]
@@ -53,10 +53,10 @@ namespace Atlassian.Jira.Test
 
             // Assert
             Assert.NotNull(parameters);
-            Assert.Equal(parameters.Count(), 1);
+            Assert.Single(parameters);
 
-            Assert.Equal(parameters.First().Name, "field1");
-            Assert.Equal(parameters.First().Value, "value=string==");
+            Assert.Equal("field1", parameters.First().Name);
+            Assert.Equal("value=string==", parameters.First().Value);
         }
     }
 }

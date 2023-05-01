@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
@@ -10,8 +11,6 @@ namespace Atlassian.Jira
     /// <summary>
     /// Collection of labels for an issue.
     /// </summary>
-    [SuppressMessage("N/A", "CS0660", Justification = "Operator overloads are used for LINQ to JQL provider.")]
-    [SuppressMessage("N/A", "CS0661", Justification = "Operator overloads are used for LINQ to JQL provider.")]
     public class IssueLabelCollection : List<string>, IRemoteIssueFieldProvider
     {
         private readonly List<string> _originalLabels;
@@ -37,19 +36,43 @@ namespace Atlassian.Jira
 
         public static bool operator ==(IssueLabelCollection list, string value)
         {
-            return (object)list == null ? value == null : list.Any(v => v == value);
+            return list is null ? value == null : list.Any(v => v == value);
         }
 
         public static bool operator !=(IssueLabelCollection list, string value)
         {
-            return (object)list == null ? value == null : !list.Any(v => v == value);
+            return list is null ? value == null : list.Any(v => v == value) is false;
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (obj is IssueLabelCollection list)
+            {
+                return this.SequenceEqual(list);
+            }
+
+            return false;
+        }
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                int hash = 17;
+                foreach (string label in this)
+                {
+                    hash = hash * 23 + (label != null ? label.GetHashCode() : 0);
+                }
+
+                return hash;
+            }
         }
 
         Task<RemoteFieldValue[]> IRemoteIssueFieldProvider.GetRemoteFieldValuesAsync(CancellationToken token)
         {
             var fieldValues = new List<RemoteFieldValue>();
 
-            if (_originalLabels.Count() != this.Count() || this.Except(_originalLabels).Any())
+            if (_originalLabels.Count != this.Count || this.Except(_originalLabels).Any())
             {
                 fieldValues.Add(new RemoteFieldValue()
                 {

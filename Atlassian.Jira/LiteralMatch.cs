@@ -1,12 +1,8 @@
-﻿using System.Diagnostics.CodeAnalysis;
-
-namespace Atlassian.Jira
+﻿namespace Atlassian.Jira
 {
     /// <summary>
     /// Force a CustomField comparison to use the exact match JQL operator.
     /// </summary>
-    [SuppressMessage("N/A", "CS0660", Justification = "Operator overloads are used for LINQ to JQL provider.")]
-    [SuppressMessage("N/A", "CS0661", Justification = "Operator overloads are used for LINQ to JQL provider.")]
     public class LiteralMatch
     {
         private readonly string _value;
@@ -23,7 +19,7 @@ namespace Atlassian.Jira
 
         public static bool operator ==(ComparableString comparable, LiteralMatch literal)
         {
-            if ((object)comparable == null)
+            if (comparable is null)
             {
                 return literal == null;
             }
@@ -35,7 +31,7 @@ namespace Atlassian.Jira
 
         public static bool operator !=(ComparableString comparable, LiteralMatch literal)
         {
-            if ((object)comparable == null)
+            if (comparable is null)
             {
                 return literal != null;
             }
@@ -43,6 +39,21 @@ namespace Atlassian.Jira
             {
                 return comparable.Value != literal._value;
             }
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (obj is LiteralMatch literal)
+            {
+                return _value == literal._value;
+            }
+
+            return false;
+        }
+
+        public override int GetHashCode()
+        {
+            return _value != null ? _value.GetHashCode() : 0;
         }
     }
 }
