@@ -32,7 +32,7 @@ namespace Atlassian.Jira
 
         public static bool operator ==(ComparableString field, string value)
         {
-            if ((object)field == null)
+            if (field is null)
             {
                 return value == null;
             }
@@ -44,7 +44,7 @@ namespace Atlassian.Jira
 
         public static bool operator !=(ComparableString field, string value)
         {
-            if ((object)field == null)
+            if (field is null)
             {
                 return value != null;
             }
@@ -76,9 +76,9 @@ namespace Atlassian.Jira
 
         public static bool operator ==(ComparableString field, DateTime value)
         {
-            if ((object)field == null)
+            if (field is null)
             {
-                return value == null;
+                return false;
             }
             else
             {
@@ -88,9 +88,9 @@ namespace Atlassian.Jira
 
         public static bool operator !=(ComparableString field, DateTime value)
         {
-            if ((object)field == null)
+            if (field is null)
             {
-                return value != null;
+                return true;
             }
             else
             {

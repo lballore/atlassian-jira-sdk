@@ -1,13 +1,10 @@
 ﻿using System;
-using System.Diagnostics.CodeAnalysis;
 
 namespace Atlassian.Jira
 {
     /// <summary>
     /// Force a DateTime field to use a string provided as the JQL query value.
     /// </summary>
-    [SuppressMessage("N/A", "CS0660", Justification = "Operator overloads are used for LINQ to JQL provider.")]
-    [SuppressMessage("N/A", "CS0661", Justification = "Operator overloads are used for LINQ to JQL provider.")]
     public class LiteralDateTime
     {
         private readonly string _dateTimeString;
@@ -80,6 +77,21 @@ namespace Atlassian.Jira
         public static bool operator <=(DateTime? dateTime, LiteralDateTime literalDateTime)
         {
             return false;
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (obj is LiteralDateTime literalDateTime)
+            {
+                return _dateTimeString == literalDateTime._dateTimeString;
+            }
+
+            return false;
+        }
+
+        public override int GetHashCode()
+        {
+            return _dateTimeString != null ? _dateTimeString.GetHashCode() : 0;
         }
     }
 }
