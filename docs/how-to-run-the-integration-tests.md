@@ -23,7 +23,7 @@ Automated setup uses Selenium WebDriver to automate the Chrome browser to run th
 
 1. Set environment variable `JIRA_VERSION`
 
-```bash
+```cmd
 // WINDOWS
 SET JIRA_VERSION=8.5.2
 ```
@@ -47,7 +47,7 @@ After running the commands wait until the Chrome window is closed. If successful
 Useful if anything fails with the automated setup above.
 
 - Launch the docker container.
-```
+```cmd
 SET JIRA_VERSION=8.5.2
 docker-compose up -d
 ```
@@ -65,13 +65,13 @@ Each Jira version requires a different test data file, look in the `Atlassian.Ji
 Once the image is up and running you can run the integration tests within your IDE.
 
 But you might prefer the command line:
-```
+```cmd
 $ dotnet test Atlassian.Jira.Test.Integration/
 ```
 
 ## Clean the container
 
 To clean the Docker containers launched for the integration tests:
-```
+```cmd
 $ docker-compose down -v
 ```

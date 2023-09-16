@@ -1,18 +1,10 @@
-# Atlassian.NET SDK
+# atlassian-jira-sdk
 
-Contains utilities for interacting with  [Atlassian JIRA](http://www.atlassian.com/software/jira).
+A wrapper for RESt APIs for .NET developers to interact with [Jira](http://www.atlassian.com/software/jira), a suite of agile work management solutions developed by Atlassian.
 
 ## Support Notice
 
-All features tested on JIRA v8.5.2
-
-Due to time constraints, this project is no longer mantained. Thank you for all the support during these past years.
-
-## Download
-
-- [Get the latest via NuGet](http://nuget.org/List/Packages/Atlassian.SDK).
-- [Get the latest binaries from AppVeyor](https://ci.appveyor.com/project/farmas/atlassian-net-sdk/history).
-  [![Build Status](https://ci.appveyor.com/api/projects/status/bitbucket/farmas/atlassian.net-sdk?branch=release&amp;svg=true)](https://ci.appveyor.com/project/farmas/atlassian-net-sdk)
+All features are tested on Jira v8.5.2
 
 ## License
 
@@ -24,37 +16,28 @@ This project is licensed under  [BSD](/LICENSE.md).
 - [Newtonsoft.Json](https://www.nuget.org/packages/Newtonsoft.Json)
 - Tested with JIRA v8.5.2
 
-## History
+# History
 
-- For a description changes, check out the [Change History Page](/docs/change-history.md).
+This project began in 2010 during a [ShipIt](https://www.atlassian.com/company/shipit) day at Atlassian with provider,
+to query Jira issues using LINQ syntax. For a description changes, check out the [Change History Page](/docs/change-history.md).
 
-- This project began in 2010 during a [ShipIt](https://www.atlassian.com/company/shipit) day at Atlassian with provider
-  to query Jira issues using LINQ syntax. Over time it grew to add many more operations on top of the JIRA SOAP API.
-  Support of REST API was added on v4.0 and support of SOAP API was dropped on v8.0.
-
-## Related Projects
-
-- [VS Jira](https://bitbucket.org/farmas/vsjira) - A VisualStudio Extension that adds tools to interact with JIRA
-servers.
-- [Jira OAuth CLI](https://bitbucket.org/farmas/atlassian.net-jira-oauth-cli) - Command line tool to setup OAuth on a JIRA server so that it can be used with the Atlassian.NET SDK.
-
-## Signed Version
-
-### Atlassian.SDK.Signed (Deprecated)
-
-The [Atlassian.SDK.Signed](https://www.nuget.org/packages/Atlassian.SDK.Signed/) package contains a signed version of
-the assembly, however it is no longer being mantained. It has the following limitations:
-
-- It references the  [RestSharpSigned](https://www.nuget.org/packages/RestSharpSigned) package, which is not up-to-date
-  to the official  [RestSharp](https://www.nuget.org/packages/RestSharpSigned) package.
-- It only supports net452 framework (does not support .netcore).
-
-### Using StrongNameSigner
-
-An alternative to using the Atlassian.SDK.Signed package is to use the [StrongNameSigner](https://www.nuget.org/packages/Brutal.Dev.StrongNameSigner) which can automatically sign any un-signed packages in your project. For a sample of how to use it in a project see [VS Jira](https://bitbucket.org/farmas/vsjira).
+Due to time constraints, this project is no longer mantained by his creator, [Federico Silva Armas](https://bitbucket.org/farmas/).
+Being the need for such a library still high, I decided to fork and update it.
 
 ## Documentation
 
-The documentation is placed under the [docs](/docs) folder.
+The documentation guides are placed under the [docs](/docs) folder.
 
-As a first user, here is the documentation on [how to use the SDK](/docs/how-to-use-the-sdk.md).
+### Table of contents
+
+1. [Changelog](CHANGELOG.md)
+2. Guides
+    1. [How to use the SDK](/docs/how-to-use-the-sdk.md)
+    2. [How to connect using OAuth](/docs/how-to-connect-using-oauth.md)
+    3. [How to run the integration tests](/docs/how-to-run-the-integration-tests.md)
+    4. [How to debug problems](/docs/how-to-debug-problems.md)
+    5. [How to work with custom fields](/docs/how-to-use-custom-fields.md)
+    6. [How to handle changes due to GDPR](/docs/how-to-handle-gdpr-changes.md)
+    7. [How to configure fields to download when querying issues](how-to-configure-issue-fields-to-fetch.md)
+3. Reference
+    1. [JQL Supported Operators](/docs/reference-jql.md)
