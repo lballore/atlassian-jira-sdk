@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Atlassian.Jira.OAuth;
+using System;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
@@ -28,6 +29,19 @@ namespace Atlassian.Jira.Remote
         /// <param name="settings">Settings to configure the rest client.</param>
         public JiraRestClient(string url, string username = null, string password = null, JiraRestClientSettings settings = null)
             : this(url, new HttpBasicAuthenticator(username, password), settings)
+        {
+        }
+
+        /// <summary>
+        /// Creates a new instance of the JiraRestClient class.
+        /// </summary>
+        /// <param name="url">Url to the JIRA server.</param>
+        /// <param name="username">Username used to authenticate.</param>
+        /// <param name="apiToken">A valid apiToken string registered on the Jira server.</param>
+        /// <param name="tokenType">Type of the authentication token. Bearer is the default for Jira.</param>
+        /// <param name="settings">Settings to configure the rest client.</param>
+        public JiraRestClient(string url, string apiToken, TokenType tokenType = TokenType.Bearer, JiraRestClientSettings settings = null)
+            : this(url, new OAuth2AuthorizationRequestHeaderAuthenticator(apiToken, tokenType.ToString()), settings)
         {
         }
 
