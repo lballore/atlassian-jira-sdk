@@ -26,7 +26,7 @@ Being the need for such a library still high, I decided to fork and update it.
 
 ## Documentation
 
-The documentation guides are placed under the [docs](/docs) folder.
+The documentation guides can be found under the [docs](/docs) folder.
 
 ### Table of contents
 
