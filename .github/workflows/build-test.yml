@@ -5,9 +5,11 @@ name: .NET
 
 on:
   push:
-    branches: [ "**" ]
+    branches:
+    - '**'
   pull_request:
-    branches: [ "**" ]
+    branches:
+    - '**'
 
 jobs:
   build:
@@ -25,4 +27,4 @@ jobs:
     - name: Build
       run: dotnet build Atlassian.Jira --no-restore
     - name: Test
-      run: dotnet test Atlassian.Jira.Test --no-build --verbosity normal
+      run: dotnet test Atlassian.Jira.Test --verbosity normal
